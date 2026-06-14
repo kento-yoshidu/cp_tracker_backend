@@ -24,7 +24,7 @@ async fn get_data(client: web::Data<Client>) -> impl Responder {
                 .content_type("application/json")
                 .body(bytes)
         }
-        Err(_) => HttpResponse::InternalServerError().body("Internal Server Error"),
+        Err(e) => HttpResponse::InternalServerError().body(format!("{e:#?}")),
     }
 }
 
