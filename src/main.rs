@@ -1,9 +1,23 @@
 use actix_web::{get, App, HttpResponse, HttpServer, Responder, web};
+use aws_config::imds::client;
 use aws_sdk_s3::Client;
+
+mod models;
+mod store;
 
 #[get("/hello")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello World")
+}
+
+#[get("/problems")]
+async fn get_problems(client: web::Data<Client>) -> impl Responder {
+    match store::read_json(client).await {
+        Some(problems) => HttpResponse::Ok()
+            .content_type("application/json")
+            .body(serde_json::to_string(&problems).unwrap()),
+        None => HttpResponse::InternalServerError().finish(),
+    }
 }
 
 #[get("/data")]
@@ -13,7 +27,7 @@ async fn get_data(client: web::Data<Client>) -> impl Responder {
     let resp = client
         .get_object()
         .bucket(&bucket)
-        .key("data.json")
+        .key("problems.json")
         .send()
         .await;
 
@@ -42,6 +56,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(client.clone()))
             .service(hello)
             .service(get_data)
+            .service(get_problems)
     })
     .bind(format!("0.0.0.0:{port}"))?
     .run()
