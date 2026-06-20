@@ -2,8 +2,9 @@
   {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "platform": "AtCoder",
-    "url": "https://atcoder.jp/contests/abc123/tasks/abc123_a",
-    "title": "PerFect Ranking",
-    "tags": ["greedy"]
+    "url": "https://atcoder.jp/contests/abc087/tasks/arc090_a",
+    "title": "ABC087 C - Candies",
+    "tags": ["動的計画法"],
+    "difficulty": 312
   }
 ]

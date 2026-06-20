@@ -8,4 +8,5 @@ pub struct Problem {
     pub url: String,
     pub title: String,
     pub tags: Vec<String>,
+    pub difficulty: u16,
 }

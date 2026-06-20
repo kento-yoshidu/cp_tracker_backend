@@ -1,5 +1,4 @@
 use actix_web::{get, App, HttpResponse, HttpServer, Responder, web};
-use aws_config::imds::client;
 use aws_sdk_s3::Client;
 
 mod models;
@@ -23,7 +22,7 @@ async fn get_problems(client: web::Data<Client>) -> impl Responder {
 #[get("/data")]
 async fn get_data(client: web::Data<Client>) -> impl Responder {
     let bucket = std::env::var("S3_BUCKET").unwrap();
-    
+
     let resp = client
         .get_object()
         .bucket(&bucket)
