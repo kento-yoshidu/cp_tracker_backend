@@ -1,6 +1,7 @@
 use actix_web::{get, App, HttpResponse, HttpServer, Responder, web};
 use aws_sdk_s3::Client;
 use handlers::post_ac;
+use handlers::create_problem;
 
 mod models;
 mod store;
@@ -58,6 +59,7 @@ async fn main() -> std::io::Result<()> {
             .service(hello)
             .service(get_data)
             .service(get_problems)
+            .service(create_problem)
             .service(post_ac)
     })
     .bind(format!("0.0.0.0:{port}"))?
