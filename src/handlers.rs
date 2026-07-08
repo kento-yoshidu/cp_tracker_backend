@@ -1,8 +1,8 @@
-use actix_web::{HttpResponse, Responder, post, web};
+use actix_web::{HttpResponse, Responder, get, post, web};
 use aws_sdk_s3::Client;
 use uuid::Uuid;
 
-use crate::{models::{CreateProblemRequest, Problem}, store};
+use crate::{models::{CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, Problem}, store};
 
 #[post("/problems/{id}/ac")]
 pub async fn post_ac(
@@ -60,4 +60,22 @@ pub async  fn create_problem(
     }
 
     HttpResponse::Created().json(new_problem)
+}
+
+#[get("/problems/check-duplicate")]
+pub async fn check_duplicate(
+    client: web::Data<Client>,
+    query: web::Query<CheckDuplicateRequest>,
+) -> impl Responder {
+    let Some(problems) = store::read_json(client.clone()).await else {
+        return HttpResponse::NotFound().finish();
+    };
+
+    let input_url = query.url.trim_end_matches('/');
+
+    let exists = problems
+        .iter()
+        .any(|p| p.url.trim_end_matches('/') == input_url);
+
+    HttpResponse::Ok().json(CheckDuplicateResponse { exists })
 }
