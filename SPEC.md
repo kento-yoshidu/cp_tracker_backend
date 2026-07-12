@@ -8,7 +8,7 @@
 |------|------|
 | フレームワーク | Actix-web 4 |
 | データストア | S3（メタデータ・メモ・画像をすべて管理） |
-| 認証 | なし（個人利用） |
+| 認証 | あり（管理者1名のみ。AWS Cognito + Cookieセッション） |
 
 ## デプロイ構成
 
@@ -115,6 +115,48 @@ bucket/
 ## 詰まった点
 
 インデックスのオフセットを1ずれて実装してしまい、WA→ACまで30分かかった。
+```
+
+---
+
+## 認証
+
+管理者（自分）のみがログインでき、書き込み系エンドポイント（POST/PUT/DELETE）はログイン必須。閲覧系（GET）は引き続き無認証でアクセス可能。
+
+- ユーザーは AWS Cognito User Pool に管理者1名のみ登録されている（セルフサインアップは無効）
+- Cognitoとの通信（`InitiateAuth`）はすべてバックエンドが行い、フロントエンドはCognito SDKを使わない
+- ログイン成功時、Cognitoのアクセストークンを `session` という名前の Cookie（`HttpOnly` / `Secure` / `SameSite=None`）にセットする
+- 書き込み系エンドポイントは、リクエストの `session` Cookieを Cognito の JWKS で署名検証し、`token_use=access` かつ `client_id` が一致することを確認する。検証に失敗した場合は `401 Unauthorized`
+- 現時点で認証必須になっているのは `POST /api/problems`（新規登録）と `POST /api/problems/:id/ac`。今後 PUT/DELETE系を実装する際も同様に保護する想定
+
+### ログイン
+
+```
+POST /api/login
+```
+
+**リクエストボディ**
+
+```json
+{
+  "username": "admin",
+  "password": "..."
+}
+```
+
+- Cognitoに対して `USER_PASSWORD_AUTH` フローで認証する
+- 成功時は `session` Cookieを発行する（レスポンスボディなし）
+
+**レスポンス** `200 OK` / `401 Unauthorized`（認証失敗）
+
+### 環境変数（認証関連）
+
+```
+COGNITO_USER_POOL_ID=
+COGNITO_REGION=
+COGNITO_CLIENT_ID=
+COGNITO_CLIENT_SECRET=
+FRONTEND_ORIGIN=   # CORSの許可オリジン（AmplifyのURL）
 ```
 
 ---
@@ -272,6 +314,7 @@ backend/
     models.rs     # データ構造体（Problem, リクエスト/レスポンス型）
     store.rs      # S3読み書き（problems.json・memos/{id}.md）
     handlers.rs   # 各エンドポイントのハンドラー
+    auth.rs       # Cognito認証（ログイン・JWT検証・認証ミドルウェア）
 frontend/
   ...             # Next.js or React
 ```
