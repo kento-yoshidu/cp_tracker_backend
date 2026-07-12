@@ -3,7 +3,7 @@ use sha2::Sha256;
 use base64::{engine::general_purpose, Engine as _};
 use aws_sdk_cognitoidentityprovider::{Client as CognitoClient, types::AuthFlowType};
 use actix_web::{web, get, post, Responder, HttpRequest};
-use actix_web::cookie::{Cookie, SameSite};
+use actix_web::cookie::{Cookie, SameSite, time::Duration};
 use crate::models::LoginRequest;
 
 
@@ -116,6 +116,7 @@ pub async fn login_handler(cognito: web::Data<CognitoClient>, body: web::Json<Lo
                 .secure(true)
                 .same_site(SameSite::None)
                 .path("/")
+                .max_age(Duration::days(1))
                 .finish();
             HttpResponse::Ok().cookie(cookie).finish()
         }
