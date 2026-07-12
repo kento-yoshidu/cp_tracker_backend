@@ -1,11 +1,14 @@
-use actix_web::{get, App, HttpResponse, HttpServer, Responder, web};
+use actix_web::{get, App, HttpResponse, HttpServer, Responder, web, middleware::from_fn};
 use aws_sdk_s3::Client;
+use aws_sdk_cognitoidentityprovider::Client as CognitoClient;
 use handlers::{post_ac, check_duplicate};
 use handlers::create_problem;
+use auth::{login_handler, require_auth, fetch_jwks};
 
 mod models;
 mod store;
 mod handlers;
+mod auth;
 
 #[get("/hello")]
 async fn hello() -> impl Responder {
@@ -50,18 +53,32 @@ async fn main() -> std::io::Result<()> {
 
     let config = aws_config::load_from_env().await;
     let client = Client::new(&config);
+    let cognito_client = CognitoClient::new(&config);
+
+    let region = std::env::var("COGNITO_REGION").unwrap();
+    let user_pool_id = std::env::var("COGNITO_USER_POOL_ID").unwrap();
+    let jwks = fetch_jwks(&region, &user_pool_id)
+        .await
+        .expect("failed to fetch Cognito JWKS");
 
     let port = std::env::var("PORT").unwrap_or("8080".to_string());
 
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(client.clone()))
+            .app_data(web::Data::new(cognito_client.clone()))
+            .app_data(web::Data::new(jwks.clone()))
             .service(hello)
             .service(get_data)
             .service(get_problems)
-            .service(create_problem)
             .service(check_duplicate)
-            .service(post_ac)
+            .service(login_handler)
+            .service(
+                web::scope("")
+                    .wrap(from_fn(require_auth))
+                    .service(create_problem)
+                    .service(post_ac)
+            )
     })
     .bind(format!("0.0.0.0:{port}"))?
     .run()
