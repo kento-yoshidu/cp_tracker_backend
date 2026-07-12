@@ -2,8 +2,8 @@ use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use base64::{engine::general_purpose, Engine as _};
 use aws_sdk_cognitoidentityprovider::{Client as CognitoClient, types::AuthFlowType};
-use actix_web::{web, post, Responder};
-use actix_web::cookie::{Cookie, SameSite, time::Duration};
+use actix_web::{web, get, post, Responder, HttpRequest};
+use actix_web::cookie::{Cookie, SameSite};
 use crate::models::LoginRequest;
 
 
@@ -119,6 +119,23 @@ pub async fn login_handler(cognito: web::Data<CognitoClient>, body: web::Json<Lo
                 .finish();
             HttpResponse::Ok().cookie(cookie).finish()
         }
+        Err(_) => HttpResponse::Unauthorized().finish(),
+    }
+}
+
+#[get("/me")]
+pub async fn me_handler(req: HttpRequest, jwks: web::Data<Jwks>) -> impl Responder {
+    let Some(token) = req.cookie("session").map(|c| c.value().to_string()) else {
+        return HttpResponse::Unauthorized().finish();
+    };
+
+    let region = std::env::var("COGNITO_REGION").unwrap();
+    let client_id = std::env::var("COGNITO_CLIENT_ID").unwrap();
+    let user_pool_id = std::env::var("COGNITO_USER_POOL_ID").unwrap();
+    let issuer = format!("https://cognito-idp.{region}.amazonaws.com/{user_pool_id}");
+
+    match verify_token(&token, &jwks, &client_id, &issuer) {
+        Ok(_) => HttpResponse::Ok().finish(),
         Err(_) => HttpResponse::Unauthorized().finish(),
     }
 }

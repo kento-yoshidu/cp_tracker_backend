@@ -3,7 +3,7 @@ use aws_sdk_s3::Client;
 use aws_sdk_cognitoidentityprovider::Client as CognitoClient;
 use handlers::{post_ac, check_duplicate};
 use handlers::create_problem;
-use auth::{login_handler, require_auth, fetch_jwks};
+use auth::{login_handler, me_handler, require_auth, fetch_jwks};
 
 mod models;
 mod store;
@@ -73,6 +73,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_problems)
             .service(check_duplicate)
             .service(login_handler)
+            .service(me_handler)
             .service(
                 web::scope("")
                     .wrap(from_fn(require_auth))
