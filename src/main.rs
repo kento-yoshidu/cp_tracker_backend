@@ -18,9 +18,13 @@ async fn hello() -> impl Responder {
 #[get("/problems")]
 async fn get_problems(client: web::Data<Client>) -> impl Responder {
     match store::read_json(client).await {
-        Some(problems) => HttpResponse::Ok()
+        Some(mut problems) => {
+            problems.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+            HttpResponse::Ok()
             .content_type("application/json")
-            .body(serde_json::to_string(&problems).unwrap()),
+            .body(serde_json::to_string(&problems).unwrap())
+        },
         None => HttpResponse::InternalServerError().finish(),
     }
 }
