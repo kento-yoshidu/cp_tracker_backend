@@ -50,6 +50,7 @@ pub async  fn create_problem(
         tags: req.tags,
         difficulty: req.difficulty,
         ac_count: 0,
+        created_at: Some(chrono::Local::now().to_rfc3339()),
         last_solved_at: None,
     };
 

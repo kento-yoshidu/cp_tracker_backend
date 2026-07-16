@@ -10,6 +10,7 @@ pub struct Problem {
     pub tags: Vec<String>,
     pub difficulty: u16,
     pub ac_count: u8,
+    pub created_at: Option<String>,
     pub last_solved_at: Option<String>
 }
 
