@@ -1,8 +1,12 @@
 use actix_web::{get, App, HttpResponse, HttpServer, Responder, web, middleware::from_fn};
 use aws_sdk_s3::Client;
 use aws_sdk_cognitoidentityprovider::Client as CognitoClient;
-use handlers::{post_ac, check_duplicate};
-use handlers::create_problem;
+use handlers::{
+    create_problem,
+    update_problem,
+    post_ac,
+    check_duplicate,
+};
 use auth::{login_handler, me_handler, require_auth, fetch_jwks};
 
 mod models;
@@ -82,6 +86,7 @@ async fn main() -> std::io::Result<()> {
                 web::scope("")
                     .wrap(from_fn(require_auth))
                     .service(create_problem)
+                    .service(update_problem)
                     .service(post_ac)
             )
     })

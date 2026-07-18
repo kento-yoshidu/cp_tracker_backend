@@ -24,6 +24,14 @@ pub struct CreateProblemRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct UpdateProblemRequest {
+    pub title: String,
+    pub url: String,
+    pub tags: Vec<String>,
+    pub difficulty: u16,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct CheckDuplicateRequest {
     pub url: String,
 }
