@@ -1,8 +1,30 @@
-use actix_web::{HttpResponse, Responder, get, post, put, web};
+use actix_web::{
+    HttpResponse,
+    Responder,
+    web,
+    get,
+    post,
+    put,
+    delete,
+};
 use aws_sdk_s3::Client;
 use uuid::Uuid;
 
 use crate::{models::{CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, Problem, UpdateProblemRequest}, store};
+
+#[get("/problems")]
+async fn get_problems(client: web::Data<Client>) -> impl Responder {
+    match store::read_json(client).await {
+        Some(mut problems) => {
+            problems.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+            HttpResponse::Ok()
+            .content_type("application/json")
+            .body(serde_json::to_string(&problems).unwrap())
+        },
+        None => HttpResponse::InternalServerError().finish(),
+    }
+}
 
 #[post("/problems/{id}/ac")]
 pub async fn post_ac(
@@ -57,7 +79,7 @@ pub async  fn create_problem(
     problems.push(new_problem.clone());
 
     if store::write_json(client, &problems).await.is_none() {
-        HttpResponse::InternalServerError().finish();
+        return  HttpResponse::InternalServerError().finish();
     }
 
     HttpResponse::Created().json(new_problem)
@@ -91,6 +113,33 @@ pub async fn update_problem(
     }
 
     HttpResponse::Ok().json(updated)
+}
+
+#[delete("/problems/{id}")]
+pub async fn delete_problem(
+    client: web::Data<Client>,
+    path: web::Path<uuid::Uuid>,
+) -> impl Responder {
+    let path_id = path.into_inner();
+
+    let Some(problems) = store::read_json(client.clone()).await else {
+        return HttpResponse::NotFound().finish();
+    };
+
+    if !problems.iter().any(|problem| problem.id == path_id) {
+        return HttpResponse::NotFound().finish();
+    }
+
+    let new_problems: Vec<Problem> = problems
+        .into_iter()
+        .filter(|problem| problem.id != path_id)
+        .collect();
+
+    if store::write_json(client, &new_problems).await.is_none() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    HttpResponse::Ok().finish()
 }
 
 #[get("/problems/check-duplicate")]
