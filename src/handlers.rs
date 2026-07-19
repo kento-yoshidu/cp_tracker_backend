@@ -10,11 +10,11 @@ use actix_web::{
 use aws_sdk_s3::Client;
 use uuid::Uuid;
 
-use crate::{models::{CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, Problem, UpdateProblemRequest}, store};
+use crate::{models::{CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, DataFile, Problem, UpdateProblemRequest}, store};
 
 #[get("/problems")]
 async fn get_problems(client: web::Data<Client>) -> impl Responder {
-    match store::read_json(client).await {
+    match store::read_json(client, DataFile::Problems).await {
         Some(mut problems) => {
             problems.sort_by(|a, b| b.created_at.cmp(&a.created_at));
 
@@ -33,7 +33,7 @@ pub async fn post_ac(
 ) -> impl Responder {
     let id = path.into_inner();
 
-    let Some(mut problems) = store::read_json(client.clone()).await else {
+    let Some(mut problems) = store::read_json(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 
@@ -60,7 +60,7 @@ pub async  fn create_problem(
 ) -> impl Responder {
     let req = body.into_inner();
 
-    let Some(mut problems) = store::read_json(client.clone()).await else {
+    let Some(mut problems) = store::read_json(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 
@@ -93,7 +93,7 @@ pub async fn update_problem(
 ) -> impl Responder {
     let id = path.into_inner();
 
-    let Some(mut problems) = store::read_json(client.clone()).await else {
+    let Some(mut problems) = store::read_json(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 
@@ -122,7 +122,7 @@ pub async fn delete_problem(
 ) -> impl Responder {
     let path_id = path.into_inner();
 
-    let Some(problems) = store::read_json(client.clone()).await else {
+    let Some(problems) = store::read_json(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 
@@ -147,7 +147,7 @@ pub async fn check_duplicate(
     client: web::Data<Client>,
     query: web::Query<CheckDuplicateRequest>,
 ) -> impl Responder {
-    let Some(problems) = store::read_json(client.clone()).await else {
+    let Some(problems) = store::read_json(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 
