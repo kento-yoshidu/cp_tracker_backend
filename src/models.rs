@@ -46,3 +46,17 @@ pub struct LoginRequest {
     pub username: String,
     pub password: String,
 }
+
+pub enum DataFile {
+    Problems,
+    Archives,
+}
+
+impl DataFile {
+    pub fn filename(&self) -> &'static str {
+        match self {
+            DataFile::Problems => "problems.json",
+            DataFile::Archives => "archives.json",
+        }
+    }
+}

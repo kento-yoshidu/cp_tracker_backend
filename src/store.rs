@@ -1,11 +1,15 @@
 use actix_web::web;
 use aws_sdk_s3::Client;
 
-use crate::models::Problem;
+use crate::models::{DataFile, Problem};
 
-pub async fn read_json(client: web::Data<Client>) -> Option<Vec<Problem>> {
+pub async fn read_json(
+    client: web::Data<Client>,
+    data_file: DataFile,
+) -> Option<Vec<Problem>> {
     if std::env::var("USE_LOCAL_FILE").is_ok() {
-        let data = std::fs::read_to_string("problems.json").ok()?;
+        let data = std::fs::read_to_string(data_file.filename()).ok()?;
+
         serde_json::from_str(&data).ok()
     } else {
         let bucket = std::env::var("S3_BUCKET").unwrap();
@@ -13,7 +17,7 @@ pub async fn read_json(client: web::Data<Client>) -> Option<Vec<Problem>> {
         let res = client
             .get_object()
             .bucket(&bucket)
-            .key("problems.json")
+            .key(data_file.filename())
             .send()
             .await;
 
