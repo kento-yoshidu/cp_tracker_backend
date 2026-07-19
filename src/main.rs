@@ -2,9 +2,11 @@ use actix_web::{get, App, HttpResponse, HttpServer, Responder, web, middleware::
 use aws_sdk_s3::Client;
 use aws_sdk_cognitoidentityprovider::Client as CognitoClient;
 use handlers::{
+    get_problems,
     create_problem,
     update_problem,
     post_ac,
+    delete_problem,
     check_duplicate,
 };
 use auth::{login_handler, me_handler, require_auth, fetch_jwks};
@@ -17,20 +19,6 @@ mod auth;
 #[get("/hello")]
 async fn hello() -> impl Responder {
     HttpResponse::Ok().body("Hello World")
-}
-
-#[get("/problems")]
-async fn get_problems(client: web::Data<Client>) -> impl Responder {
-    match store::read_json(client).await {
-        Some(mut problems) => {
-            problems.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-
-            HttpResponse::Ok()
-            .content_type("application/json")
-            .body(serde_json::to_string(&problems).unwrap())
-        },
-        None => HttpResponse::InternalServerError().finish(),
-    }
 }
 
 #[get("/data")]
@@ -87,6 +75,7 @@ async fn main() -> std::io::Result<()> {
                     .wrap(from_fn(require_auth))
                     .service(create_problem)
                     .service(update_problem)
+                    .service(delete_problem)
                     .service(post_ac)
             )
     })
