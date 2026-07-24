@@ -14,13 +14,14 @@ use crate::{models::{CheckDuplicateRequest, CheckDuplicateResponse, CreateProble
 
 #[get("/problems")]
 async fn get_problems(client: web::Data<Client>) -> impl Responder {
-    match store::read_json(client, DataFile::Problems).await {
+    match store::read_json::<Problem>(client, DataFile::Problems).await {
         Some(mut problems) => {
             problems.sort_by(|a, b| b.created_at.cmp(&a.created_at));
 
             HttpResponse::Ok()
-            .content_type("application/json")
-            .body(serde_json::to_string(&problems).unwrap())
+                .content_type("application/json")
+                .body(serde_json::to_string(&problems)
+                .unwrap())
         },
         None => HttpResponse::InternalServerError().finish(),
     }
@@ -33,7 +34,7 @@ pub async fn post_ac(
 ) -> impl Responder {
     let id = path.into_inner();
 
-    let Some(mut problems) = store::read_json(client.clone(), DataFile::Problems).await else {
+    let Some(mut problems) = store::read_json::<Problem>(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 
@@ -46,7 +47,7 @@ pub async fn post_ac(
 
     let updated = problem.clone();
 
-    if store::write_json(client, &problems).await.is_none() {
+    if store::write_json(client, DataFile::Problems, &problems).await.is_none() {
         return HttpResponse::InternalServerError().finish();
     }
 
@@ -78,7 +79,7 @@ pub async  fn create_problem(
 
     problems.push(new_problem.clone());
 
-    if store::write_json(client, &problems).await.is_none() {
+    if store::write_json(client, DataFile::Problems, &problems).await.is_none() {
         return  HttpResponse::InternalServerError().finish();
     }
 
@@ -93,7 +94,7 @@ pub async fn update_problem(
 ) -> impl Responder {
     let id = path.into_inner();
 
-    let Some(mut problems) = store::read_json(client.clone(), DataFile::Problems).await else {
+    let Some(mut problems) = store::read_json::<Problem>(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 
@@ -108,7 +109,7 @@ pub async fn update_problem(
 
     let updated = problem.clone();
 
-    if store::write_json(client, &problems).await.is_none() {
+    if store::write_json(client, DataFile::Problems, &problems).await.is_none() {
         return HttpResponse::InternalServerError().finish();
     }
 
@@ -122,7 +123,7 @@ pub async fn delete_problem(
 ) -> impl Responder {
     let path_id = path.into_inner();
 
-    let Some(problems) = store::read_json(client.clone(), DataFile::Problems).await else {
+    let Some(problems) = store::read_json::<Problem>(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 
@@ -135,7 +136,7 @@ pub async fn delete_problem(
         .filter(|problem| problem.id != path_id)
         .collect();
 
-    if store::write_json(client, &new_problems).await.is_none() {
+    if store::write_json::<Problem>(client, DataFile::Problems, &new_problems).await.is_none() {
         return HttpResponse::InternalServerError().finish();
     }
 
@@ -147,7 +148,7 @@ pub async fn check_duplicate(
     client: web::Data<Client>,
     query: web::Query<CheckDuplicateRequest>,
 ) -> impl Responder {
-    let Some(problems) = store::read_json(client.clone(), DataFile::Problems).await else {
+    let Some(problems) = store::read_json::<Problem>(client.clone(), DataFile::Problems).await else {
         return HttpResponse::NotFound().finish();
     };
 

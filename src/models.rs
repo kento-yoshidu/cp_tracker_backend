@@ -14,6 +14,13 @@ pub struct Problem {
     pub last_solved_at: Option<String>
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Activity {
+    pub problem_id: Uuid,
+    pub difficulty: u16,
+    pub date: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CreateProblemRequest {
     pub platform: String,
@@ -50,6 +57,7 @@ pub struct LoginRequest {
 pub enum DataFile {
     Problems,
     Archives,
+    Activities,
 }
 
 impl DataFile {
@@ -57,6 +65,7 @@ impl DataFile {
         match self {
             DataFile::Problems => "problems.json",
             DataFile::Archives => "archives.json",
+            DataFile::Activities => "activities.json",
         }
     }
 }
