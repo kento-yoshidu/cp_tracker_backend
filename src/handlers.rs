@@ -10,7 +10,18 @@ use actix_web::{
 use aws_sdk_s3::Client;
 use uuid::Uuid;
 
-use crate::{models::{CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, DataFile, Problem, UpdateProblemRequest}, store};
+use crate::{
+    models::{
+        Activity,
+        CheckDuplicateRequest,
+        CheckDuplicateResponse,
+        CreateProblemRequest,
+        DataFile,
+        Problem,
+        UpdateProblemRequest
+    },
+    store,
+};
 
 #[get("/problems")]
 async fn get_problems(client: web::Data<Client>) -> impl Responder {
@@ -42,12 +53,28 @@ pub async fn post_ac(
         return HttpResponse::NotFound().finish();
     };
 
+    let today = chrono::Local::now().format("%Y%m%d").to_string();
+
     problem.ac_count += 1;
-    problem.last_solved_at = Some(chrono::Local::now().format("%Y%m%d").to_string());
+    problem.last_solved_at = Some(today.clone());
 
     let updated = problem.clone();
 
-    if store::write_json(client, DataFile::Problems, &problems).await.is_none() {
+    if store::write_json(client.clone(), DataFile::Problems, &problems).await.is_none() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    let Some(mut activities) = store::read_json::<Activity>(client.clone(), DataFile::Activities).await else {
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    activities.push(Activity {
+        problem_id: updated.id,
+        difficulty: updated.difficulty,
+        date: today,
+    });
+
+    if store::write_json(client, DataFile::Activities, &activities).await.is_none() {
         return HttpResponse::InternalServerError().finish();
     }
 
