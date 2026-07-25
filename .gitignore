@@ -1,3 +1,6 @@
 .env
 /target
+
 problems.json
+archive.json
+activities.json

@@ -9,8 +9,9 @@
       "C問題"
     ],
     "difficulty": 312,
-    "ac_count": 1,
-    "last_solved_at": "20260702"
+    "ac_count": 5,
+    "created_at": null,
+    "last_solved_at": "20260725"
   },
   {
     "id": "a20d826a-5d13-45eb-9175-c7c941338304",
@@ -24,6 +25,7 @@
     ],
     "difficulty": 274,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -36,6 +38,7 @@
     ],
     "difficulty": 0,
     "ac_count": 1,
+    "created_at": null,
     "last_solved_at": "20260702"
   },
   {
@@ -49,6 +52,7 @@
     ],
     "difficulty": 436,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -62,6 +66,7 @@
     ],
     "difficulty": 0,
     "ac_count": 1,
+    "created_at": null,
     "last_solved_at": "20260703"
   },
   {
@@ -75,6 +80,7 @@
     ],
     "difficulty": 403,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -88,6 +94,7 @@
     ],
     "difficulty": 413,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -101,6 +108,7 @@
     ],
     "difficulty": 464,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -115,6 +123,7 @@
     ],
     "difficulty": 832,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -128,6 +137,7 @@
     ],
     "difficulty": 512,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -141,6 +151,7 @@
     ],
     "difficulty": 539,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -154,6 +165,7 @@
     ],
     "difficulty": 551,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -167,6 +179,7 @@
     ],
     "difficulty": 796,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -180,6 +193,7 @@
     ],
     "difficulty": 0,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": ""
   },
   {
@@ -192,6 +206,7 @@
     ],
     "difficulty": 999,
     "ac_count": 0,
+    "created_at": null,
     "last_solved_at": null
   }
 ]
