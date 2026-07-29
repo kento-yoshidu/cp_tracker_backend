@@ -30,7 +30,9 @@ S3バケット: cp-tracker-db
 
 ```
 cp-tracker-db/
-  problems.json    # 問題一覧(メタデータ)のみ。メモ・画像は未実装
+  problems.json     # 問題一覧(メタデータ)のみ。メモ・画像は未実装
+  archives.json     # 未実装。ac_countが一定数を超えた問題を凍結して移す想定
+  activities.json   # ACイベントログ。POST /problems/:id/ac のたびに1件追記
 ```
 
 ---
@@ -64,6 +66,24 @@ cp-tracker-db/
   "ac_count": 2,
   "created_at": "2026-07-15T10:00:00+09:00",
   "last_solved_at": "20260719"
+}
+```
+
+### Activity(JSONに保存するフィールド)
+
+`POST /problems/:id/ac`のたびに1件追記されるACイベントのログ。`activities.json`に配列で保存される。
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `problem_id` | String (UUID v4) | ACした問題のid |
+| `difficulty` | u16 | AC時点のdifficultyのスナップショット。後から問題側のdifficultyが変更・削除されてもこの値は変わらない |
+| `date` | String (`yyyyMMdd`) | AC日時。`Problem.last_solved_at`と同じ形式・同じ日時を使う |
+
+```json
+{
+  "problem_id": "550e8400-e29b-41d4-a716-446655440000",
+  "difficulty": 300,
+  "date": "20260719"
 }
 ```
 
@@ -138,6 +158,28 @@ GET /problems
   { ...Problem }
 ]
 ```
+
+---
+
+### 日別AC集計取得
+
+```
+GET /activities
+```
+
+認証不要。`activities.json`の全イベントを`date`ごとに集計し、`date`昇順で返す。GitHubのcontributionグラフのような日別ヒートマップ表示を想定。
+
+**レスポンス** `200 OK` / `500 Internal Server Error`
+
+```json
+[
+  { "date": "20260719", "ac_count": 3, "max_difficulty": 800 },
+  { "date": "20260720", "ac_count": 1, "max_difficulty": 400 }
+]
+```
+
+- `ac_count`: その日にACした回数(同じ問題を複数回ACした場合も1回ずつカウント)
+- `max_difficulty`: その日にACした問題のうち最大のdifficulty
 
 ---
 
@@ -228,7 +270,7 @@ DELETE /problems/:id
 POST /problems/:id/ac
 ```
 
-認証必須。`ac_count`を+1し、`last_solved_at`を現在日時(`%Y%m%d`)にセットする。
+認証必須。`ac_count`を+1し、`last_solved_at`を現在日時(`%Y%m%d`)にセットする。同時に`activities.json`へ`{ problem_id, difficulty, date }`を1件追記する(`date`は`last_solved_at`と同じ値)。
 
 **レスポンス** `200 OK`(更新後のProblem) / `404 Not Found` / `500 Internal Server Error`
 
@@ -252,7 +294,7 @@ backend/
   src/
     main.rs       # サーバー起動・ルーティング
     models.rs     # データ構造体(Problem, 各リクエスト/レスポンス型)
-    store.rs      # S3 / ローカルファイル読み書き(problems.json)
-    handlers.rs   # /problems 配下のハンドラー
+    store.rs      # S3 / ローカルファイル読み書き(problems.json / archives.json / activities.json共通)
+    handlers.rs   # /problems, /activities 配下のハンドラー
     auth.rs       # Cognito認証(ログイン・JWT検証・認証ミドルウェア)
 ```

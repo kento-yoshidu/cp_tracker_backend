@@ -21,6 +21,13 @@ pub struct Activity {
     pub date: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct DailyActivity {
+    pub date: String,
+    pub ac_count: u32,
+    pub max_difficulty: u16,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CreateProblemRequest {
     pub platform: String,
