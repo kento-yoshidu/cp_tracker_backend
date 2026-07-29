@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use actix_web::{
     HttpResponse,
     Responder,
@@ -12,15 +14,8 @@ use uuid::Uuid;
 
 use crate::{
     models::{
-        Activity,
-        CheckDuplicateRequest,
-        CheckDuplicateResponse,
-        CreateProblemRequest,
-        DataFile,
-        Problem,
-        UpdateProblemRequest
-    },
-    store,
+        Activity, CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, DailyActivity, DataFile, Problem, UpdateProblemRequest
+    }, store,
 };
 
 #[get("/problems")]
@@ -31,11 +26,34 @@ async fn get_problems(client: web::Data<Client>) -> impl Responder {
 
             HttpResponse::Ok()
                 .content_type("application/json")
-                .body(serde_json::to_string(&problems)
-                .unwrap())
+                .body(serde_json::to_string(&problems).unwrap())
         },
         None => HttpResponse::InternalServerError().finish(),
     }
+}
+
+#[get("/activities")]
+async fn get_activities(client: web::Data<Client>) -> impl Responder {
+    let Some(activities) = store::read_json::<Activity>(client, DataFile::Activities).await else {
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    let mut map = HashMap::new();
+
+    for activity in activities {
+        let entry = map.entry(activity.date).or_insert((0, 0));
+        entry.0 += 1;
+        entry.1 = entry.1.max(activity.difficulty);
+    }
+
+    let mut daily: Vec<DailyActivity> = map
+        .into_iter()
+        .map(|(date, (ac_count, max_difficulty))| DailyActivity { date, ac_count, max_difficulty })
+        .collect();
+
+    daily.sort_by(|a, b| a.date.cmp(&b.date));
+
+    HttpResponse::Ok().json(daily)
 }
 
 #[post("/problems/{id}/ac")]

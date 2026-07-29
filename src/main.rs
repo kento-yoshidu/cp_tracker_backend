@@ -3,6 +3,7 @@ use aws_sdk_s3::Client;
 use aws_sdk_cognitoidentityprovider::Client as CognitoClient;
 use handlers::{
     get_problems,
+    get_activities,
     create_problem,
     update_problem,
     post_ac,
@@ -67,6 +68,7 @@ async fn main() -> std::io::Result<()> {
             .service(hello)
             .service(get_data)
             .service(get_problems)
+            .service(get_activities)
             .service(check_duplicate)
             .service(login_handler)
             .service(me_handler)
