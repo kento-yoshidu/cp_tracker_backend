@@ -14,7 +14,14 @@ use uuid::Uuid;
 
 use crate::{
     models::{
-        Activity, CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, DailyActivity, DataFile, Problem, UpdateProblemRequest
+        Activity,
+        CheckDuplicateRequest,
+        CheckDuplicateResponse,
+        CreateProblemRequest,
+        DailyActivity,
+        DataFile,
+        Problem,
+        UpdateProblemRequest,
     }, store,
 };
 
@@ -204,4 +211,41 @@ pub async fn check_duplicate(
         .any(|p| p.url.trim_end_matches('/') == input_url);
 
     HttpResponse::Ok().json(CheckDuplicateResponse { exists })
+}
+
+#[post("/problems/{id}/archive")]
+pub async fn archive(
+    client: web::Data<Client>,
+    path: web::Path<String>
+) -> impl Responder {
+    let id = path.into_inner();
+
+    let Some(problems) = store::read_json::<Problem>(client.clone(), DataFile::Problems).await else {
+        return HttpResponse::NotFound().finish();
+    };
+
+    let Some(target) = problems.iter().find(|p| p.id.to_string() == id).cloned() else {
+        return HttpResponse::NotFound().finish();
+    };
+
+    let Some(mut archives) = store::read_json::<Problem>(client.clone(), DataFile::Archives).await else {
+        return HttpResponse::InternalServerError().finish();
+    };
+
+    archives.push(target.clone());
+
+    if store::write_json(client.clone(), DataFile::Archives, &archives).await.is_none() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    let remaining: Vec<Problem> = problems
+        .into_iter()
+        .filter(|p| p.id.to_string() != id)
+        .collect();
+
+    if store::write_json(client, DataFile::Problems, &remaining).await.is_none() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    HttpResponse::Ok().json(target)
 }

@@ -1,19 +1,5 @@
 [
   {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "platform": "AtCoder",
-    "url": "https://atcoder.jp/contests/abc087/tasks/arc090_a",
-    "title": "ABC087 C - Candies",
-    "tags": [
-      "動的計画法",
-      "C問題"
-    ],
-    "difficulty": 312,
-    "ac_count": 5,
-    "created_at": null,
-    "last_solved_at": "20260725"
-  },
-  {
     "id": "a20d826a-5d13-45eb-9175-c7c941338304",
     "platform": "AtCoder",
     "url": "https://atcoder.jp/contests/abc463/tasks/abc463_c",
