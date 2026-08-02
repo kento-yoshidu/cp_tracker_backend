@@ -14,14 +14,7 @@ use uuid::Uuid;
 
 use crate::{
     models::{
-        Activity,
-        CheckDuplicateRequest,
-        CheckDuplicateResponse,
-        CreateProblemRequest,
-        DailyActivity,
-        DataFile,
-        Problem,
-        UpdateProblemRequest,
+        Activity, Archive, CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, DailyActivity, DataFile, Problem, UpdateProblemRequest,
     }, store,
 };
 
@@ -228,11 +221,21 @@ pub async fn archive(
         return HttpResponse::NotFound().finish();
     };
 
-    let Some(mut archives) = store::read_json::<Problem>(client.clone(), DataFile::Archives).await else {
+    let archived = Archive {
+        id: target.id,
+        platform: target.platform.clone(),
+        url: target.url.clone(),
+        title: target.title.clone(),
+        tags: target.tags.clone(),
+        difficulty: target.difficulty,
+        archived_at: chrono::Local::now().to_rfc3339(),
+    };
+
+    let Some(mut archives) = store::read_json::<Archive>(client.clone(), DataFile::Archives).await else {
         return HttpResponse::InternalServerError().finish();
     };
 
-    archives.push(target.clone());
+    archives.push(archived.clone());
 
     if store::write_json(client.clone(), DataFile::Archives, &archives).await.is_none() {
         return HttpResponse::InternalServerError().finish();
@@ -248,4 +251,18 @@ pub async fn archive(
     }
 
     HttpResponse::Ok().json(target)
+}
+
+#[get("/archives")]
+pub async fn get_archives(client: web::Data<Client>) -> impl Responder {
+    match store::read_json::<Archive>(client, DataFile::Archives).await {
+        Some(mut archives) => {
+            archives.sort_by(|a, b| b.archived_at.cmp(&a.archived_at));
+
+            HttpResponse::Ok()
+                .content_type("application/json")
+                .body(serde_json::to_string(&archives).unwrap())
+        },
+        None => HttpResponse::InternalServerError().finish(),
+    }
 }
