@@ -9,6 +9,7 @@ use handlers::{
     post_ac,
     delete_problem,
     check_duplicate,
+    archive,
 };
 use auth::{login_handler, me_handler, require_auth, fetch_jwks};
 
@@ -79,6 +80,7 @@ async fn main() -> std::io::Result<()> {
                     .service(update_problem)
                     .service(delete_problem)
                     .service(post_ac)
+                    .service(archive)
             )
     })
     .bind(format!("0.0.0.0:{port}"))?

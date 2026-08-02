@@ -31,7 +31,7 @@ S3バケット: cp-tracker-db
 ```
 cp-tracker-db/
   problems.json     # 問題一覧(メタデータ)のみ。メモ・画像は未実装
-  archives.json     # 未実装。ac_countが一定数を超えた問題を凍結して移す想定
+  archives.json     # アーカイブ済みの問題。POST /problems/:id/archive で problems.json から移動
   activities.json   # ACイベントログ。POST /problems/:id/ac のたびに1件追記
 ```
 
@@ -97,7 +97,7 @@ cp-tracker-db/
 - Cognitoとの通信(`InitiateAuth`)はすべてバックエンドが行う
 - ログイン成功時、Cognitoのアクセストークンを`session`という名前のCookie(`HttpOnly`/`Secure`/`SameSite=None`、有効期限1日)にセットする
 - 認証必須のエンドポイントは`require_auth`ミドルウェアで保護される。リクエストの`session`CookieをCognitoのJWKSで署名検証し、`token_use=access`かつ`client_id`が一致することを確認する。検証に失敗した場合は`401 Unauthorized`
-- 認証必須: `POST /problems`, `PUT /problems/:id`, `DELETE /problems/:id`, `POST /problems/:id/ac`
+- 認証必須: `POST /problems`, `PUT /problems/:id`, `DELETE /problems/:id`, `POST /problems/:id/ac`, `POST /problems/:id/archive`
 
 ### ログイン
 
@@ -273,6 +273,18 @@ POST /problems/:id/ac
 認証必須。`ac_count`を+1し、`last_solved_at`を現在日時(`%Y%m%d`)にセットする。同時に`activities.json`へ`{ problem_id, difficulty, date }`を1件追記する(`date`は`last_solved_at`と同じ値)。
 
 **レスポンス** `200 OK`(更新後のProblem) / `404 Not Found` / `500 Internal Server Error`
+
+---
+
+### アーカイブ
+
+```
+POST /problems/:id/archive
+```
+
+認証必須。手動での操作のみ(ac_countなどによる自動アーカイブは無し)。`archives.json`へ追記してから`problems.json`から該当レコードを削除する(この順序のため、途中で失敗しても記録が消えることはなく、最悪両方に残る)。アーカイブされた問題は`problems.json`から消えるため`GET /problems`には出てこなくなり、`POST /problems/:id/ac`も対象が見つからず`404`になる(凍結)。
+
+**レスポンス** `200 OK`(アーカイブされたProblem) / `404 Not Found` / `500 Internal Server Error`
 
 ---
 
