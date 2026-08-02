@@ -15,6 +15,17 @@ pub struct Problem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Archive {
+    pub id: Uuid,
+    pub platform: String,
+    pub url: String,
+    pub title: String,
+    pub tags: Vec<String>,
+    pub difficulty: u16,
+    pub archived_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Activity {
     pub problem_id: Uuid,
     pub difficulty: u16,

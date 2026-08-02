@@ -10,6 +10,7 @@ use handlers::{
     delete_problem,
     check_duplicate,
     archive,
+    get_archives,
 };
 use auth::{login_handler, me_handler, require_auth, fetch_jwks};
 
@@ -73,6 +74,7 @@ async fn main() -> std::io::Result<()> {
             .service(check_duplicate)
             .service(login_handler)
             .service(me_handler)
+            .service(get_archives)
             .service(
                 web::scope("")
                     .wrap(from_fn(require_auth))

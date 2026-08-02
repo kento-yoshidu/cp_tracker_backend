@@ -31,7 +31,7 @@ S3バケット: cp-tracker-db
 ```
 cp-tracker-db/
   problems.json     # 問題一覧(メタデータ)のみ。メモ・画像は未実装
-  archives.json     # アーカイブ済みの問題。POST /problems/:id/archive で problems.json から移動
+  archives.json     # アーカイブ済みの問題(Archive)。POST /problems/:id/archive で problems.json から移動
   activities.json   # ACイベントログ。POST /problems/:id/ac のたびに1件追記
 ```
 
@@ -66,6 +66,32 @@ cp-tracker-db/
   "ac_count": 2,
   "created_at": "2026-07-15T10:00:00+09:00",
   "last_solved_at": "20260719"
+}
+```
+
+### Archive(JSONに保存するフィールド)
+
+`POST /problems/:id/archive`でアーカイブされた問題。`Problem`をそのまま流用するのではなく専用の構造体で、`ac_count` / `last_solved_at`は持たない(凍結後は増減しないため不要)代わりに`archived_at`を持つ。`archives.json`に配列で保存される。
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `id` | String (UUID v4) | 元の`Problem.id`を引き継ぐ |
+| `platform` | String | プラットフォーム名 |
+| `url` | String | 問題ページのURL |
+| `title` | String | 問題タイトル |
+| `tags` | Vec\<String\> | タグ(空配列可) |
+| `difficulty` | u16 | 難易度 |
+| `archived_at` | String (RFC3339) | アーカイブされた日時。`created_at`と同じRFC3339形式 |
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "platform": "AtCoder",
+  "url": "https://atcoder.jp/contests/abc123/tasks/abc123_a",
+  "title": "Perfect Ranking",
+  "tags": ["greedy", "sorting"],
+  "difficulty": 300,
+  "archived_at": "2026-08-02T10:00:00+09:00"
 }
 ```
 
@@ -156,6 +182,25 @@ GET /problems
 [
   { ...Problem },
   { ...Problem }
+]
+```
+
+---
+
+### アーカイブ一覧取得
+
+```
+GET /archives
+```
+
+認証不要。`archived_at`の降順(アーカイブが新しい順)にソートして返す。
+
+**レスポンス** `200 OK` / `500 Internal Server Error`
+
+```json
+[
+  { ...Archive },
+  { ...Archive }
 ]
 ```
 
@@ -282,9 +327,9 @@ POST /problems/:id/ac
 POST /problems/:id/archive
 ```
 
-認証必須。手動での操作のみ(ac_countなどによる自動アーカイブは無し)。`archives.json`へ追記してから`problems.json`から該当レコードを削除する(この順序のため、途中で失敗しても記録が消えることはなく、最悪両方に残る)。アーカイブされた問題は`problems.json`から消えるため`GET /problems`には出てこなくなり、`POST /problems/:id/ac`も対象が見つからず`404`になる(凍結)。
+認証必須。手動での操作のみ(ac_countなどによる自動アーカイブは無し)。対象の`Problem`から`Archive`を組み立て(`ac_count` / `last_solved_at`は捨て、`archived_at`に現在日時をセット)、`archives.json`へ追記してから`problems.json`から該当レコードを削除する(この順序のため、途中で失敗しても記録が消えることはなく、最悪両方に残る)。アーカイブされた問題は`problems.json`から消えるため`GET /problems`には出てこなくなり、`POST /problems/:id/ac`も対象が見つからず`404`になる(凍結)。
 
-**レスポンス** `200 OK`(アーカイブされたProblem) / `404 Not Found` / `500 Internal Server Error`
+**レスポンス** `200 OK`(アーカイブ前のProblem) / `404 Not Found` / `500 Internal Server Error`
 
 ---
 
