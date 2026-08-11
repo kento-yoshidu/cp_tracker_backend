@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 use actix_web::{
     HttpResponse,
     Responder,
@@ -11,10 +10,17 @@ use actix_web::{
 };
 use aws_sdk_s3::Client;
 use uuid::Uuid;
-
 use crate::{
     models::{
-        Activity, Archive, CheckDuplicateRequest, CheckDuplicateResponse, CreateProblemRequest, DailyActivity, DataFile, Problem, UpdateProblemRequest,
+        Activity,
+        Archive,
+        CheckDuplicateRequest,
+        CheckDuplicateResponse,
+        CreateProblemRequest,
+        DailyActivity,
+        DataFile,
+        Problem,
+        UpdateProblemRequest,
     }, store,
 };
 
@@ -265,4 +271,31 @@ pub async fn get_archives(client: web::Data<Client>) -> impl Responder {
         },
         None => HttpResponse::InternalServerError().finish(),
     }
+}
+
+#[delete("/archives/{id}")]
+pub async fn delete_archive(
+    client: web::Data<Client>,
+    path: web::Path<uuid::Uuid>
+) -> impl Responder {
+    let path_id = path.into_inner();
+
+    let Some(archives) = store::read_json::<Archive>(client.clone(), DataFile::Archives).await else {
+        return HttpResponse::NotFound().finish();
+    };
+
+    if !archives.iter().any(|a| a.id == path_id) {
+        return HttpResponse::NotFound().finish();
+    };
+
+    let new_archives: Vec<Archive> = archives
+        .into_iter()
+        .filter(|a| a.id != path_id)
+        .collect();
+
+    if store::write_json::<Archive>(client, DataFile::Archives, &new_archives).await.is_none() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    HttpResponse::Ok().finish()
 }
