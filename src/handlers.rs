@@ -273,6 +273,61 @@ pub async fn get_archives(client: web::Data<Client>) -> impl Responder {
     }
 }
 
+#[post("/archives/{id}/restore")]
+pub async fn restore_archive(
+    client: web::Data<Client>,
+    path: web::Path<uuid::Uuid>,
+) -> impl Responder {
+    let path_id = path.into_inner();
+
+    let Some(archives) = store::read_json::<Archive>(client.clone(), DataFile::Archives).await else {
+        return HttpResponse::NotFound().finish();
+    };
+
+    if !archives.iter().any(|a| a.id == path_id) {
+        return HttpResponse::NotFound().finish();
+    };
+
+    let Some(mut problems) = store::read_json::<Problem>(client.clone(), DataFile::Problems).await else {
+        return HttpResponse::NotFound().finish();
+    };
+
+    let arch: Archive = archives
+        .iter()
+        .find(|a| a.id == path_id)
+        .unwrap()
+        .clone();
+
+    let new_problem = Problem {
+        id: arch.id,
+        platform: arch.platform.clone(),
+        url: arch.url.clone(),
+        title: arch.title.clone(),
+        tags: arch.tags.clone(),
+        difficulty: arch.difficulty,
+        ac_count: 0,
+        created_at: Some(chrono::Local::now().to_rfc3339()),
+        last_solved_at: None,
+    };
+
+    problems.push(new_problem);
+
+    if store::write_json(client.clone(), DataFile::Problems, &problems).await.is_none() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    let new_archives: Vec<Archive> = archives
+        .into_iter()
+        .filter(|a| a.id != path_id)
+        .collect();
+
+    if store::write_json::<Archive>(client, DataFile::Archives, &new_archives).await.is_none() {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    HttpResponse::Ok().finish()
+}
+
 #[delete("/archives/{id}")]
 pub async fn delete_archive(
     client: web::Data<Client>,
