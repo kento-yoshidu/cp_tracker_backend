@@ -12,6 +12,7 @@ use handlers::{
     archive,
     get_archives,
     delete_archive,
+    restore_archive,
 };
 use auth::{login_handler, me_handler, require_auth, fetch_jwks};
 
@@ -85,6 +86,7 @@ async fn main() -> std::io::Result<()> {
                     .service(post_ac)
                     .service(archive)
                     .service(delete_archive)
+                    .service(restore_archive)
             )
     })
     .bind(format!("0.0.0.0:{port}"))?
