@@ -20,6 +20,7 @@ mod models;
 mod store;
 mod handlers;
 mod auth;
+mod time;
 
 #[get("/hello")]
 async fn hello() -> impl Responder {

@@ -21,7 +21,7 @@ use crate::{
         DataFile,
         Problem,
         UpdateProblemRequest,
-    }, store,
+    }, store, time::now_jst,
 };
 
 #[get("/problems")]
@@ -77,7 +77,7 @@ pub async fn post_ac(
         return HttpResponse::NotFound().finish();
     };
 
-    let today = chrono::Local::now().format("%Y%m%d").to_string();
+    let today = now_jst().format("%Y%m%d").to_string();
 
     problem.ac_count += 1;
     problem.last_solved_at = Some(today.clone());
@@ -124,7 +124,7 @@ pub async  fn create_problem(
         tags: req.tags,
         difficulty: req.difficulty,
         ac_count: 0,
-        created_at: Some(chrono::Local::now().to_rfc3339()),
+        created_at: Some(now_jst().to_rfc3339()),
         last_solved_at: None,
     };
 
@@ -234,7 +234,7 @@ pub async fn archive(
         title: target.title.clone(),
         tags: target.tags.clone(),
         difficulty: target.difficulty,
-        archived_at: chrono::Local::now().to_rfc3339(),
+        archived_at: now_jst().to_rfc3339(),
     };
 
     let Some(mut archives) = store::read_json::<Archive>(client.clone(), DataFile::Archives).await else {
@@ -306,7 +306,7 @@ pub async fn restore_archive(
         tags: arch.tags.clone(),
         difficulty: arch.difficulty,
         ac_count: 0,
-        created_at: Some(chrono::Local::now().to_rfc3339()),
+        created_at: Some(now_jst().to_rfc3339()),
         last_solved_at: None,
     };
 
