@@ -6,7 +6,6 @@ use actix_web::{web, get, post, Responder, HttpRequest};
 use actix_web::cookie::{Cookie, SameSite, time::Duration};
 use crate::models::LoginRequest;
 
-
 type HmacSha256 = Hmac<Sha256>;
 
 fn compute_secret_hash(username: &str, client_id: &str, client_secret: &str) -> String {
