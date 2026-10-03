@@ -31,7 +31,7 @@ S3バケット: cp-tracker-db
 ```
 cp-tracker-db/
   problems.json     # 問題一覧(メタデータ)のみ。メモ・画像は未実装
-  archives.json     # アーカイブ済みの問題(Archive)。POST /problems/:id/archive で problems.json から移動
+  archives.json     # アーカイブ済みの問題(Archive)。POST /problems/:id/archive で problems.json から移動、POST /archives/:id/restore で problems.json へ戻す
   activities.json   # ACイベントログ。POST /problems/:id/ac のたびに1件追記
 ```
 
@@ -117,13 +117,13 @@ cp-tracker-db/
 
 ## 認証
 
-管理者(自分)のみがログインでき、書き込み系エンドポイント(`/problems`配下のPOST/PUT/DELETE)はログイン必須。閲覧系(GET)は無認証でアクセス可能。
+管理者(自分)のみがログインでき、書き込み系エンドポイント(`/problems` / `/archives`配下のPOST/PUT/DELETE)はログイン必須。閲覧系(GET)は無認証でアクセス可能。
 
 - ユーザーはAWS Cognito User Poolに管理者1名のみ登録されている(セルフサインアップは無効)
 - Cognitoとの通信(`InitiateAuth`)はすべてバックエンドが行う
 - ログイン成功時、Cognitoのアクセストークンを`session`という名前のCookie(`HttpOnly`/`Secure`/`SameSite=None`、有効期限1日)にセットする
 - 認証必須のエンドポイントは`require_auth`ミドルウェアで保護される。リクエストの`session`CookieをCognitoのJWKSで署名検証し、`token_use=access`かつ`client_id`が一致することを確認する。検証に失敗した場合は`401 Unauthorized`
-- 認証必須: `POST /problems`, `PUT /problems/:id`, `DELETE /problems/:id`, `POST /problems/:id/ac`, `POST /problems/:id/archive`
+- 認証必須: `POST /problems`, `PUT /problems/:id`, `DELETE /problems/:id`, `POST /problems/:id/ac`, `POST /problems/:id/archive`, `POST /archives/:id/restore`, `DELETE /archives/:id`
 
 ### ログイン
 
@@ -333,14 +333,31 @@ POST /problems/:id/archive
 
 ---
 
-## デバッグ用エンドポイント
-
-API仕様の対象外だが実装に存在するもの。
+### アーカイブのリストア
 
 ```
-GET /hello   # 疎通確認。"Hello World" を返す
-GET /data    # problems.json をS3から生で取得して返す
+POST /archives/:id/restore
 ```
+
+認証必須。対象の`Archive`から`Problem`を組み立てて`problems.json`へ追記してから、`archives.json`から該当レコードを削除する(アーカイブと同じく、途中で失敗しても記録が消えない順序)。
+
+- `id`は`Archive.id`を引き継ぐ
+- `ac_count`は`0`、`last_solved_at`は`null`にリセットされる(`Archive`が保持していないため)
+- `created_at`はリストア時点の現在日時(RFC3339)になる。元の登録日時は復元されないため、`GET /problems`では先頭に来る
+
+**レスポンス** `200 OK`(ボディなし) / `404 Not Found` / `500 Internal Server Error`
+
+---
+
+### アーカイブの削除
+
+```
+DELETE /archives/:id
+```
+
+認証必須。`archives.json`から該当レコードを削除する。`problems.json`には戻さない。
+
+**レスポンス** `200 OK`(ボディなし) / `404 Not Found` / `500 Internal Server Error`
 
 ---
 
@@ -350,8 +367,9 @@ GET /data    # problems.json をS3から生で取得して返す
 backend/
   src/
     main.rs       # サーバー起動・ルーティング
-    models.rs     # データ構造体(Problem, 各リクエスト/レスポンス型)
+    models.rs     # データ構造体(Problem, Archive, Activity, 各リクエスト/レスポンス型)
     store.rs      # S3 / ローカルファイル読み書き(problems.json / archives.json / activities.json共通)
-    handlers.rs   # /problems, /activities 配下のハンドラー
+    handlers.rs   # /problems, /archives, /activities 配下のハンドラー
     auth.rs       # Cognito認証(ログイン・JWT検証・認証ミドルウェア)
+    time.rs       # 現在日時(JST)の取得
 ```
