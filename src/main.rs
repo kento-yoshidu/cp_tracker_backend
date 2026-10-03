@@ -1,4 +1,4 @@
-use actix_web::{get, App, HttpResponse, HttpServer, Responder, web, middleware::from_fn};
+use actix_web::{App, HttpServer, web, middleware::from_fn};
 use aws_sdk_s3::Client;
 use aws_sdk_cognitoidentityprovider::Client as CognitoClient;
 use handlers::{
@@ -22,33 +22,6 @@ mod handlers;
 mod auth;
 mod time;
 
-#[get("/hello")]
-async fn hello() -> impl Responder {
-    HttpResponse::Ok().body("Hello World")
-}
-
-#[get("/data")]
-async fn get_data(client: web::Data<Client>) -> impl Responder {
-    let bucket = std::env::var("S3_BUCKET").unwrap();
-
-    let resp = client
-        .get_object()
-        .bucket(&bucket)
-        .key("problems.json")
-        .send()
-        .await;
-
-    match resp {
-        Ok(output) => {
-            let bytes = output.body.collect().await.unwrap().into_bytes();
-            HttpResponse::Ok()
-                .content_type("application/json")
-                .body(bytes)
-        }
-        Err(e) => HttpResponse::InternalServerError().body(format!("{e:#?}")),
-    }
-}
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
@@ -70,8 +43,6 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(client.clone()))
             .app_data(web::Data::new(cognito_client.clone()))
             .app_data(web::Data::new(jwks.clone()))
-            .service(hello)
-            .service(get_data)
             .service(get_problems)
             .service(get_activities)
             .service(check_duplicate)
