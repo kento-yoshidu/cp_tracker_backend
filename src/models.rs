@@ -11,7 +11,8 @@ pub struct Problem {
     pub difficulty: u16,
     pub ac_count: u8,
     pub created_at: Option<String>,
-    pub last_solved_at: Option<String>
+    pub last_solved_at: Option<String>,
+    pub figure_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,6 +24,7 @@ pub struct Archive {
     pub tags: Vec<String>,
     pub difficulty: u16,
     pub archived_at: String,
+    pub figure_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +48,7 @@ pub struct CreateProblemRequest {
     pub title: String,
     pub tags: Vec<String>,
     pub difficulty: u16,
+    pub figure_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -54,6 +57,7 @@ pub struct UpdateProblemRequest {
     pub url: String,
     pub tags: Vec<String>,
     pub difficulty: u16,
+    pub figure_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

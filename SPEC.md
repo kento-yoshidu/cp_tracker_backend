@@ -52,6 +52,7 @@ cp-tracker-db/
 | `ac_count` | u8 | AC回数。新規登録時は`0`、`POST /problems/:id/ac`のたびに+1 |
 | `created_at` | Option\<String\> (RFC3339) | 登録日時。新規登録時に自動セット。フィールド追加前の既存データには無いため`None`になりうる |
 | `last_solved_at` | Option\<String\> (`yyyyMMdd`) | 最終AC日時。`POST /problems/:id/ac`実行時にセット。`created_at`とは異なりRFC3339ではなく`%Y%m%d`形式 |
+| `figure_url` | Option\<String\> | 解説用の図(SVG等)へのフルURL。別リポジトリ(GitHub)に置いたファイルを想定し、フロントでは別タブで開くリンクとして表示する。フィールド追加前の既存データには無いため`None`になりうる |
 
 ### APIレスポンスの形(Problem)
 
@@ -65,13 +66,14 @@ cp-tracker-db/
   "difficulty": 300,
   "ac_count": 2,
   "created_at": "2026-07-15T10:00:00+09:00",
-  "last_solved_at": "20260719"
+  "last_solved_at": "20260719",
+  "figure_url": "https://github.com/user/repo/blob/main/abc123_a.svg"
 }
 ```
 
 ### Archive(JSONに保存するフィールド)
 
-`POST /problems/:id/archive`でアーカイブされた問題。`Problem`をそのまま流用するのではなく専用の構造体で、`ac_count` / `last_solved_at`は持たない(凍結後は増減しないため不要)代わりに`archived_at`を持つ。`archives.json`に配列で保存される。
+`POST /problems/:id/archive`でアーカイブされた問題。`Problem`をそのまま流用するのではなく専用の構造体で、`ac_count` / `last_solved_at`は持たない(凍結後は増減しないため不要)代わりに`archived_at`を持つ。`figure_url`は問題そのものに付く情報なので引き継ぐ。`archives.json`に配列で保存される。
 
 | フィールド | 型 | 説明 |
 |---|---|---|
@@ -82,6 +84,7 @@ cp-tracker-db/
 | `tags` | Vec\<String\> | タグ(空配列可) |
 | `difficulty` | u16 | 難易度 |
 | `archived_at` | String (RFC3339) | アーカイブされた日時。`created_at`と同じRFC3339形式 |
+| `figure_url` | Option\<String\> | 元の`Problem.figure_url`を引き継ぐ |
 
 ```json
 {
@@ -91,7 +94,8 @@ cp-tracker-db/
   "title": "Perfect Ranking",
   "tags": ["greedy", "sorting"],
   "difficulty": 300,
-  "archived_at": "2026-08-02T10:00:00+09:00"
+  "archived_at": "2026-08-02T10:00:00+09:00",
+  "figure_url": "https://github.com/user/repo/blob/main/abc123_a.svg"
 }
 ```
 
@@ -260,10 +264,12 @@ POST /problems
   "url": "https://atcoder.jp/contests/abc123/tasks/abc123_a",
   "title": "Perfect Ranking",
   "tags": ["greedy"],
-  "difficulty": 300
+  "difficulty": 300,
+  "figure_url": "https://github.com/user/repo/blob/main/abc123_a.svg"
 }
 ```
 
+- `figure_url`は省略可(省略または`null`で`None`)
 - `id`は自動生成(UUID v4)
 - `ac_count`は`0`で初期化
 - `created_at`は現在日時(RFC3339)を自動セット
@@ -280,7 +286,7 @@ POST /problems
 PUT /problems/:id
 ```
 
-認証必須。`title` / `url` / `tags` / `difficulty`の4項目を全項目必須で受け取り上書きする(部分更新不可)。`platform` / `ac_count` / `created_at` / `last_solved_at`はこのエンドポイントでは変更されない。
+認証必須。`title` / `url` / `tags` / `difficulty` / `figure_url`の5項目で上書きする(部分更新不可)。`figure_url`以外の4項目は必須。`figure_url`は省略可能だが、省略または`null`を送ると`None`で上書きされる(既存のリンクが消える)ため、維持したい場合は現在の値を送ること。`platform` / `ac_count` / `created_at` / `last_solved_at`はこのエンドポイントでは変更されない。
 
 **リクエストボディ**
 
@@ -289,7 +295,8 @@ PUT /problems/:id
   "title": "Perfect Ranking",
   "url": "https://atcoder.jp/contests/abc123/tasks/abc123_a",
   "tags": ["greedy", "sorting"],
-  "difficulty": 300
+  "difficulty": 300,
+  "figure_url": "https://github.com/user/repo/blob/main/abc123_a.svg"
 }
 ```
 
@@ -327,7 +334,7 @@ POST /problems/:id/ac
 POST /problems/:id/archive
 ```
 
-認証必須。手動での操作のみ(ac_countなどによる自動アーカイブは無し)。対象の`Problem`から`Archive`を組み立て(`ac_count` / `last_solved_at`は捨て、`archived_at`に現在日時をセット)、`archives.json`へ追記してから`problems.json`から該当レコードを削除する(この順序のため、途中で失敗しても記録が消えることはなく、最悪両方に残る)。アーカイブされた問題は`problems.json`から消えるため`GET /problems`には出てこなくなり、`POST /problems/:id/ac`も対象が見つからず`404`になる(凍結)。
+認証必須。手動での操作のみ(ac_countなどによる自動アーカイブは無し)。対象の`Problem`から`Archive`を組み立て(`ac_count` / `last_solved_at`は捨て、`figure_url`は引き継ぎ、`archived_at`に現在日時をセット)、`archives.json`へ追記してから`problems.json`から該当レコードを削除する(この順序のため、途中で失敗しても記録が消えることはなく、最悪両方に残る)。アーカイブされた問題は`problems.json`から消えるため`GET /problems`には出てこなくなり、`POST /problems/:id/ac`も対象が見つからず`404`になる(凍結)。
 
 **レスポンス** `200 OK`(アーカイブ前のProblem) / `404 Not Found` / `500 Internal Server Error`
 
@@ -341,7 +348,7 @@ POST /archives/:id/restore
 
 認証必須。対象の`Archive`から`Problem`を組み立てて`problems.json`へ追記してから、`archives.json`から該当レコードを削除する(アーカイブと同じく、途中で失敗しても記録が消えない順序)。
 
-- `id`は`Archive.id`を引き継ぐ
+- `id`は`Archive.id`を、`figure_url`は`Archive.figure_url`を引き継ぐ
 - `ac_count`は`0`、`last_solved_at`は`null`にリセットされる(`Archive`が保持していないため)
 - `created_at`はリストア時点の現在日時(RFC3339)になる。元の登録日時は復元されないため、`GET /problems`では先頭に来る
 
