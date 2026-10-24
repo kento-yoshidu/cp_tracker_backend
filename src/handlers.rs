@@ -126,6 +126,7 @@ pub async  fn create_problem(
         ac_count: 0,
         created_at: Some(now_jst().to_rfc3339()),
         last_solved_at: None,
+        figure_url: req.figure_url,
     };
 
     problems.push(new_problem.clone());
@@ -157,6 +158,7 @@ pub async fn update_problem(
     problem.url = body.url.clone();
     problem.tags = body.tags.clone();
     problem.difficulty = body.difficulty;
+    problem.figure_url = body.figure_url.clone();
 
     let updated = problem.clone();
 
@@ -235,6 +237,7 @@ pub async fn archive(
         tags: target.tags.clone(),
         difficulty: target.difficulty,
         archived_at: now_jst().to_rfc3339(),
+        figure_url: target.figure_url.clone(),
     };
 
     let Some(mut archives) = store::read_json::<Archive>(client.clone(), DataFile::Archives).await else {
@@ -308,6 +311,7 @@ pub async fn restore_archive(
         ac_count: 0,
         created_at: Some(now_jst().to_rfc3339()),
         last_solved_at: None,
+        figure_url: arch.figure_url,
     };
 
     problems.push(new_problem);
